@@ -21,12 +21,12 @@ function str2ab(str: string): ArrayBuffer {
   return buf;
 }
 
-interface GenerateKeyPairOptions {
+interface GenerateSeededRsaOptions {
   bits?: number;
 }
 
 /** Generate a deterministic RSA keypair from a seed. */
-async function generateSeededRsa(seed: string, opts: GenerateKeyPairOptions = {}): Promise<CryptoKeyPair> {
+async function generateSeededRsa(seed: string, opts: GenerateSeededRsaOptions = {}): Promise<CryptoKeyPair> {
   // Seed the PRNG with a SHA-256 digest from the string.
   const prng = forge.random.createInstance();
   prng.seedFileSync = () => getDigest(seed);
