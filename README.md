@@ -1,6 +1,6 @@
 # seeded-rsa
 
-Generate an RSA keypair from a seed (any string) and get back a [`CryptoKeyPair`](https://developer.mozilla.org/en-US/docs/Web/API/CryptoKeyPair). The keypair will always be the same for the same input string.
+Generate a deterministic RSA keypair from a seed (any string) and get back a [`CryptoKeyPair`](https://developer.mozilla.org/en-US/docs/Web/API/CryptoKeyPair). The keypair will always be the same for the same input string.
 
 It relies on [node-forge](https://github.com/digitalbazaar/forge) and is based roughly on [this StackOverflow post](https://stackoverflow.com/a/72047475).
 
