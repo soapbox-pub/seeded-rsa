@@ -21,13 +21,17 @@ function str2ab(str: string): ArrayBuffer {
   return buf;
 }
 
+interface GenerateKeyPairOptions {
+  bits?: number;
+}
+
 /** Generate a deterministic RSA keypair from a seed. */
-async function generateSeededRsa(seed: string): Promise<CryptoKeyPair> {
+async function generateSeededRsa(seed: string, opts: GenerateKeyPairOptions = {}): Promise<CryptoKeyPair> {
   // Seed the PRNG with a SHA-256 digest from the string.
   const prng = forge.random.createInstance();
   prng.seedFileSync = () => getDigest(seed);
 
-  const keys = forge.pki.rsa.generateKeyPair({ bits: 1024, prng });
+  const keys = forge.pki.rsa.generateKeyPair({ ...opts, prng });
 
   const rsaPublicKey = forge.pki.publicKeyToAsn1(keys.publicKey);
   const publicKeyData = str2ab(forge.asn1.toDer(rsaPublicKey).getBytes());
@@ -36,7 +40,7 @@ async function generateSeededRsa(seed: string): Promise<CryptoKeyPair> {
   const privateKeyInfo = forge.pki.wrapRsaPrivateKey(rsaPrivateKey);
   const privateKeyData = str2ab(forge.asn1.toDer(privateKeyInfo).getBytes());
 
-  const opts = {
+  const algorithm = {
     name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-256',
   };
@@ -44,7 +48,7 @@ async function generateSeededRsa(seed: string): Promise<CryptoKeyPair> {
   const publicKey = await crypto.subtle.importKey(
     'spki',
     publicKeyData,
-    opts,
+    algorithm,
     true,
     ['verify'],
   );
@@ -52,7 +56,7 @@ async function generateSeededRsa(seed: string): Promise<CryptoKeyPair> {
   const privateKey = await crypto.subtle.importKey(
     'pkcs8',
     privateKeyData,
-    opts,
+    algorithm,
     true,
     ['sign'],
   );
