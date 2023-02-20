@@ -1,11 +1,16 @@
 // @deno-types="npm:@types/node-forge@^1.3.1"
 import forge from 'npm:node-forge@^1.3.1';
 
-/** Get SHA-256 hex digest from a string. */
-function getDigest(message: string) {
-  const md = forge.md.sha256.create();
-  md.update(message);
-  return md.digest().toHex();
+/**
+ * Get SHA-256 hex digest from a string.
+ * <https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest#converting_a_digest_to_a_hex_string>
+ */
+async function getDigest(message: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 
 /**
@@ -29,9 +34,17 @@ interface GenerateSeededRsaOptions {
 async function generateSeededRsa(seed: string, opts: GenerateSeededRsaOptions = {}): Promise<CryptoKeyPair> {
   // Seed the PRNG with a SHA-256 digest from the string.
   const prng = forge.random.createInstance();
-  prng.seedFileSync = () => getDigest(seed);
-
-  const keys = forge.pki.rsa.generateKeyPair({ ...opts, prng });
+  prng.seedFile = async (_needed, cb) => cb(null, await getDigest(seed));
+  
+  const keys = await new Promise<forge.pki.rsa.KeyPair>((resolve, reject) => {
+    forge.pki.rsa.generateKeyPair({ ...opts, prng }, function(err, keypair) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(keypair);
+      }
+    });
+  });
 
   const rsaPublicKey = forge.pki.publicKeyToAsn1(keys.publicKey);
   const publicKeyData = str2ab(forge.asn1.toDer(rsaPublicKey).getBytes());
